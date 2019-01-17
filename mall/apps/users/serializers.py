@@ -2,7 +2,9 @@ import re
 
 from rest_framework import serializers
 
-from users.models import User
+from mall import settings
+from users.models import User, Address
+from users.utils import generic_verify_url
 
 
 class RegiserUserSerializer(serializers.ModelSerializer):
@@ -11,11 +13,12 @@ class RegiserUserSerializer(serializers.ModelSerializer):
     #验证手机号　用户名　密码　短信验证码　确认密码　是否同意协议
     #自己定义字段就可以了
     #从前段拿过来的
-    sms_code = serializers.CharField(label='短信验证码',max_length=6,min_length=6,required=True,allow_blank=False,write_only=True)
-    allow = serializers.CharField(label='确认密码',required=True,allow_null=False,write_only=True)
-    password2 = serializers.CharField(label='确认密码',required=True,allow_null=False,write_only=True)
+    sms_code = serializers.CharField(label='短信验证码', max_length=6, min_length=6, write_only=True, required=True,
+                                     allow_blank=False)
+    allow = serializers.CharField(label='是否同意协议', required=True, allow_null=False, write_only=True)
+    password2 = serializers.CharField(label='确认密码', required=True, allow_null=False, write_only=True)
 
-    token = serializers.CharField(label='token',read_only=True)
+    token = serializers.CharField(label='token', read_only=True)
 
     '''
     ModelSerializer 自动生成字段过程　会对fields进行遍历，先去model中查看是否有相应的字段
@@ -24,7 +27,7 @@ class RegiserUserSerializer(serializers.ModelSerializer):
     '''
     class Meta:
         model = User
-        fields = ['id','mobile','username','token','password','password2','sms_code','allow','password2']
+        fields = ['id','token','mobile','username','password','sms_code','allow','password2']
 
         extra_kwargs = {
             'id': {'read_only': True},
@@ -83,7 +86,7 @@ class RegiserUserSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def  create(self,validated_data):
+    def create(self,validated_data):
         del validated_data['password2']
         del validated_data['allow']
         del validated_data['sms_code']
@@ -108,4 +111,74 @@ class RegiserUserSerializer(serializers.ModelSerializer):
 
         return user
 
+
+# ==========邮箱发送
+
+class UserCenterInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id','username','mobile','email','email_active')
+
+
+class UserEmailInfoSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id','email')
+        extra_kwargs = {
+            'email':{'required':True}
+        }
+
+    def update(self,instance,validated_data):
+        #先把数据更新
+        email = validated_data.get('email')
+
+        instance.email = email
+        instance.save()
+
+        #在发送邮件
+        # from django.core.mall import send_mail
+        # 主题
+        subject = '美多商城激活邮件'
+        # 内容
+        message = ''
+        # 谁发送的
+        from_email = settings.EMAIL_FROM
+        #收件人列表
+        recipient_list = [email]
+
+        verify_url = generic_verify_url(instance.id)
+        print('hahaah')
+
+        from celery_tasks.mall.tasks import send_celery_email
+        send_celery_email.delay(subject,message,
+                                from_email,
+                                email,
+                                verify_url,
+                                recipient_list)
+        return instance
+
+class AddressSerializer(serializers.ModelSerializer):
+    province = serializers.StringRelatedField(read_only=True)
+    city = serializers.StringRelatedField(read_only=True)
+    district = serializers.StringRelatedField(read_only=True)
+    province_id = serializers.IntegerField(label='省ID', required=True)
+    city_id = serializers.IntegerField(label='市ID', required=True)
+    district_id = serializers.IntegerField(label='区ID', required=True)
+    mobile = serializers.RegexField(label='手机号', regex=r'^1[3-9]\d{9}$')
+
+    class Meta:
+        model = Address
+        exclude = ('user', 'is_deleted', 'create_time', 'update_time')
+
+    def create(self, validated_data):
+        validated_data['user']=self.context['request'].user
+        # return Address.objects.create(**validated_data)
+
+        return super().create(validated_data)
+
+    def delete(self,validated_data):
+        validated_data['user']=self.context['request'].user
+        return super().destroy(validated_data)
 

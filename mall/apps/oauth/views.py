@@ -1,20 +1,15 @@
 from QQLoginTool.QQtool import OAuthQQ
-from django.shortcuts import render
+
 
 # Create your views here.
 from rest_framework import status
-from rest_framework.generics import RetrieveAPIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from mall import settings
 from oauth.models import OAuthQQUser
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-
 from oauth.serializers import OAuthQQUserSerializer
-# from oauth.serializers import UserCenterInfoSerializer
 from oauth.utils import generic_opne_id, generic_token
+
 
 '''
 当用户点击ｑｑ按钮的时候　回发送一个请求
@@ -120,7 +115,7 @@ class OAuthQQUserAPIView(APIView):
             return Response({
                 'token':token,
                 'username':qquser.user.username,
-                'openid':qquser.user.id
+                'user_id':qquser.user.id
             })
 
     def post(self,request):
@@ -130,36 +125,19 @@ class OAuthQQUserAPIView(APIView):
         serializer = OAuthQQUserSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         #保存校验数据　并接收
-        user = serializer.save()
-        print(user)
-        token = generic_token(user)
+        qquser = serializer.save()
+        print(qquser)
+        token = generic_token(qquser.user)
         print(token)
 
         #返回相应
         response = Response({
             'token':token,
-            'user_id':user.id,
-            'username':user.username
+            'user_id':qquser.user.id,
+            'username':qquser.user.username
 
         })
         return request
 
-# class UserCerterInfoAPIView(APIView):
-#
-#     #添加　权限　必须是登陆用户才可以访问
-#     permission_classes = [IsAuthenticated]
-#
-#     def get(self,request):
-#         #获取用户信息
-#
-#         user = request.user
-#         #将模型转化字典Ｊｓｏｎ
-#         serializer = UserCenterInfoSerializer(user)
-#         #３．返回相应
-#         return Response(serializer.data)
 
-
-
-# class UserCenterInfoAPIView(RetrieveAPIView):
-#     permission_classes = [IsAuthenticated]
 

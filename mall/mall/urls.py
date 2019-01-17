@@ -20,7 +20,12 @@ from rest_framework_jwt.views import obtain_jwt_token
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
-    url(r'^users/', include('users.url')),
+    url(r'^users/', include('users.urls')),
     url(r'^oauth/', include('oauth.urls')),
     url(r'^verifications/', include('verifications.urls')),
+    url(r'^areas/', include('areas.urls')),
+    url(r'^goods/', include('goods.urls')),
+
+    url(r'^ckeditor/', include('ckeditor_uploader.urls')),
+
 ]

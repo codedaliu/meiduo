@@ -65,6 +65,20 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'corsheaders',
     'oauth.apps.OauthConfig',
+    'areas.apps.AreasConfig',
+    'goods.apps.GoodsConfig',
+    'contents.apps.ContentsConfig',
+    'ckeditor',  # 富文本编辑器
+    'ckeditor_uploader',  # 富文本编辑器上传图片模块
+    'django_crontab',  # 定时任务
+]
+
+CRONJOBS = [
+    # 每5分钟执行一次生成主页静态文件
+    # 参数1:定义任务的频次 分时日月周
+    # 参数2:任务(函数)
+    # 参数3: 日志路径(必须正确)
+    ('*/1 * * * *', 'contents.crons.generate_static_index_html', '>> /home/python/lpf/编程文件/Django/02meiduo/mall/logs/crontab.log')
 ]
 
 MIDDLEWARE = [
@@ -86,7 +100,7 @@ ROOT_URLCONF = 'mall.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR,'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -234,7 +248,7 @@ REST_FRAMEWORK = {
     ),
 }
 import datetime
-
+#设置JWT
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),
     'JWT_RESPONSE_PAYLOAD_HANDLER':
@@ -250,3 +264,49 @@ QQ_CLIENT_ID = '101474184'
 QQ_CLIENT_SECRET = 'c6ce949e04e12ecc909ae6a8b09b637c'
 #回调的网址
 QQ_REDIRECT_URI = 'http://www.meiduo.site:8080/oauth_callback.html'
+
+
+#邮件发送相关的
+# django的配置
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# 邮件服务器
+EMAIL_HOST = 'smtp.163.com'
+# smtp 默认端口号是 25
+EMAIL_PORT = 25
+#发送邮件的邮箱
+EMAIL_HOST_USER = 'liu496116437@163.com'
+#在邮箱中设置的客户端授权密码
+EMAIL_HOST_PASSWORD = '123456abc'
+#收件人看到的发件人
+EMAIL_FROM = '美多商城<liu496116437@163.com>'
+
+#DRF扩展
+REST_FRAMEWORK_EXTENSIONS = {
+    #缓存时间
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT':60*60,
+    #缓存储存
+    'DEFAULT_USE_CACHE':'default',
+
+}
+
+# 富文本编辑器ckeditor配置
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',  # 工具条功能
+        'height': 300,  # 编辑器高度
+        # 'width': 300,  # 编辑器宽
+    },
+}
+
+CKEDITOR_UPLOAD_PATH = ''  # 上传图片保存路径，使用了FastDFS，所以此处设为''
+
+# django文件存储
+DEFAULT_FILE_STORAGE = 'utils.fastdfs.storage.MyStorage'
+
+# FastDFS192.168.154.128
+FDFS_URL = 'http://192.168.154.128:8888/'  # 访问图片的路径域名 ip地址修改为自己机器的ip地址
+FDFS_CLIENT_CONF = os.path.join(BASE_DIR, 'utils/fastdfs/client.conf')
+
+# 生成的静态html文件保存目录
+GENERATED_STATIC_HTML_FILES_DIR = os.path.join(os.path.dirname(BASE_DIR),'front')
+
